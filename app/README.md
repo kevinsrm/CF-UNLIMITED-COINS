@@ -32,23 +32,59 @@ app/
 
 ## Build
 
-Needs a JDK 11+ and five jars/binaries: `kotlin-compiler.jar`, `android.jar`,
-`d8.jar`, `apksigner.jar`, `aapt2`. Paths are environment overrides.
+Needs a JDK 11+, the Kotlin compiler distribution (compiler jar, stdlib and
+its compiler dependencies), `android.jar`, `d8.jar`, `apksigner.jar`, `aapt2`,
+a signing keystore, `zip`, and `unzip`. Paths are environment overrides.
+The build checks these inputs before removing the previous build directory.
+
+The script resolves the `kotlinc` executable's symlinks to find its distribution.
+`KOTLIN_HOME` can point at a distribution containing `lib/`; explicit
+`KOTLINC_JAR` and `KOTLIN_STDLIB` settings override its jar paths. Without a
+discoverable installation, the original `$HOME/buildenv/bin` defaults are kept.
+`COROUTINES` and `ANNOTATIONS` are optional for this app and are only added to
+the compiler classpath when present.
 
 ```sh
 export JAVA=/path/to/jdk/bin/java
+export KOTLIN_HOME=/path/to/kotlinc  # directory containing bin/ and lib/
+# Or set the two jars explicitly instead of KOTLIN_HOME:
 export KOTLINC_JAR=/path/to/kotlin-compiler.jar
 export KOTLIN_STDLIB=/path/to/kotlin-stdlib.jar
-export COROUTINES=/path/to/kotlinx-coroutines-core-jvm.jar
-export ANNOTATIONS=/path/to/annotations-13.0.jar
 export ANDROID_JAR=/path/to/android.jar
 export D8_JAR=/path/to/d8.jar
 export APKSIGNER_JAR=/path/to/apksigner.jar
 export AAPT2=/path/to/aapt2
 export KEYSTORE=/path/to/release.jks KS_PASS=... KEY_PASS=... KEY_ALIAS=...
 
+# From the repository root:
 bash app/build.sh
 ```
+
+### Termux
+
+The Termux Kotlin package installs the distribution under `$PREFIX/opt/kotlin`;
+its compiler is `$PREFIX/opt/kotlin/lib/kotlin-compiler.jar`, not usually
+`$HOME/buildenv/bin/kotlin-compiler.jar`. `kotlin -version` checks the runtime,
+whereas `kotlinc -version` checks the compiler. `-version` is the correct flag.
+
+With Kotlin already installed and `kotlinc` on PATH, the updated script discovers
+the compiler and stdlib automatically. To fix an existing checkout without
+changing its script, set the paths in the same shell before running the build:
+
+```sh
+export KOTLINC_JAR="$PREFIX/opt/kotlin/lib/kotlin-compiler.jar"
+export KOTLIN_STDLIB="$PREFIX/opt/kotlin/lib/kotlin-stdlib.jar"
+cd ~/CF-UNLIMITED-COINS/app
+bash build.sh
+```
+
+If `kotlinc` is not installed, install the Termux `kotlin` package first. The
+Android jar, D8, apksigner, aapt2 and keystore still need to be supplied at the
+paths configured above; installing Kotlin alone does not provide those inputs.
+A missing `org.jetbrains.kotlin.cli.jvm.K2JVMCompiler` means that the JVM cannot
+find the compiler class on its classpath; it does not by itself indicate a Java
+version incompatibility. The script also checks that the selected compiler jar
+actually contains this class.
 
 `aapt2 compile` runs with `--dir res`, so the resource tree must exist before
 the build. `app/tools/make_icons.py` writes it from scratch if you wiped it.
