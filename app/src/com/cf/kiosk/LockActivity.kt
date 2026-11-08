@@ -35,7 +35,6 @@ class LockActivity : Activity() {
         override fun run() {
             if (prefs.locked) {
                 Shield.hideBars(this@LockActivity)
-                Shield.lockTask(this@LockActivity)
                 ui.postDelayed(this, 1500L)
             }
         }
@@ -81,6 +80,7 @@ class LockActivity : Activity() {
         if (!prefs.locked) return
         Shield.applyKiosk(this)
         Shield.wake(this)
+        Shield.lockTask(this)
         ui.removeCallbacks(rearm)
         ui.postDelayed(rearm, 200L)
         ui.removeCallbacks(cooling)

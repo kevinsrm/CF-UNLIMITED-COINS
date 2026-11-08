@@ -25,6 +25,7 @@ class BootReceiver : BroadcastReceiver() {
                 p.bootCount = p.bootCount + 1
                 if (!p.locked) return
                 KeepAliveService.start(context)
+                OverlayGuard.start(context)
                 schedule(context)
                 val launch = Intent(context, LockActivity::class.java)
                 launch.flags = Intent.FLAG_ACTIVITY_NEW_TASK or
@@ -36,6 +37,7 @@ class BootReceiver : BroadcastReceiver() {
                 val p = Prefs(context)
                 if (!p.locked) return
                 KeepAliveService.start(context)
+                OverlayGuard.start(context)
                 val launch = Intent(context, LockActivity::class.java)
                 launch.flags = Intent.FLAG_ACTIVITY_NEW_TASK or
                     Intent.FLAG_ACTIVITY_SINGLE_TOP
