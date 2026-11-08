@@ -15,7 +15,7 @@ A variante release pode ser compilada com `:app:assembleRelease`. Ela está sem 
 - `Shield.kt`: flags imersivas, lock task, wake e verificação do launcher padrão.
 - `LinkActivity.kt`: fluxo de configuração e ativação.
 - `LockActivity.kt`: tela de bloqueio.
-- `OverlayGuard.kt`: superfície de sobreposição.
+- `OverlayGuard.kt`: serviço legado desativado para não obstruir o teclado e a recuperação.
 - `KeepAliveService.kt`: serviço de primeiro plano.
 - `BootReceiver.kt` / `ScreenReceiver`: reativação após boot e eventos de tela.
 - `GuardReceiver.kt`: receiver de administrador do dispositivo.
@@ -23,7 +23,7 @@ A variante release pode ser compilada com `:app:assembleRelease`. Ela está sem 
 ## Ativar e armar
 
 1. Instale o APK e abra CF LOCK.
-2. Siga os botões para conceder, se desejar, as permissões de administrador e sobreposição, e escolha CF LOCK como tela inicial.
+2. Siga os botões para conceder, se desejar, a permissão de administrador e escolha CF LOCK como tela inicial. A sobreposição não é mais utilizada.
 3. Pressione **Armar bloqueio**. A linha de estado mostra se administrador, launcher e sobreposição estão ativos.
 4. Para liberar, informe o código aceito na tela e pressione **Desbloquear**.
 

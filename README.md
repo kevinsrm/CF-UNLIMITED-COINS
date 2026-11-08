@@ -17,12 +17,12 @@ Para gerar a variante de release, execute `:app:assembleRelease`. O release é g
 ## Funcionalidades mantidas
 
 - Tela de configuração para ativar administrador do dispositivo, escolher o app como tela inicial, permitir sobreposição e armar o bloqueio.
-- Tela de bloqueio imersiva e superfície de sobreposição para reforçar o bloqueio.
+- Tela de bloqueio imersiva com entrada de senha; a antiga superfície de sobreposição foi desativada para não atrapalhar o teclado e a recuperação.
 - Serviço em primeiro plano, reativação após inicialização e watchdog periódico.
 - Verificação do código, limitação de tentativas e estado persistente local.
-- Desbloqueio que encerra o bloqueio, a sobreposição e o serviço.
+- Desbloqueio que encerra o bloqueio e o serviço.
 
-O app não apaga, criptografa nem envia dados. A ativação de administrador e a permissão de sobreposição são concedidas pelo próprio Android; o comportamento também depende da versão do sistema e do fabricante. Teste primeiro em um aparelho/emulador que você possa recuperar. A recuperação por ADB documentada em [`app/README.md`](app/README.md) continua disponível.
+O app não apaga, criptografa nem envia dados. A ativação de administrador é concedida pelo próprio Android; a sobreposição não é mais utilizada; o comportamento também depende da versão do sistema e do fabricante. Teste primeiro em um aparelho/emulador que você possa recuperar. A recuperação por ADB documentada em [`app/README.md`](app/README.md) continua disponível.
 
 ## Estrutura
 
