@@ -1,168 +1,45 @@
-# CF LOCK
+# CF LOCK — configuração e funcionamento
 
-Kiosk-style device latch for Android 7.0 (API 24) through Android 16 (API 36).
-One screen, one numeric field, one accepted value. Nothing on the device is
-deleted, encrypted, or wiped: the app takes the surface, hides the bars, and
-will not step aside until the right code is typed.
+App de bloqueio tipo quiosque para Android 7.0 (API 24) até Android 16 (API 36). A migração para Gradle Kotlin DSL não altera os componentes nem o fluxo funcional do app. As fontes e recursos agora seguem a estrutura Android padrão em `src/main/`.
 
-Kotlin only, no Compose, no AndroidX, no Gradle. `app/build.sh` drives
-kotlinc -> D8 -> aapt2 -> apksigner and drops a signed APK in `app/dist/`.
+## Compilação no SmartIDE
 
-## Layout
+Abra a pasta raiz do repositório, que contém `settings.gradle.kts`, e sincronize o Gradle. Requisitos: JDK 17 e Android SDK Platform 36. Para compilar, use `:app:assembleDebug` ou selecione a variante `debug` na IDE. O APK estará em `app/build/outputs/apk/debug/app-debug.apk`.
 
-```
-app/
-  AndroidManifest.xml        package com.cf.kiosk
-  build.sh                   headless build, 6 stages
-  src/com/cf/kiosk/
-    Gate.kt                  key check: SHA-256(salt:input) against four masked 64-bit limbs
-    Prefs.kt                 locked / fails / boots / cooldown, commit() so it survives a kill
-    Shield.kt                immersive flags, lock task, wake, home-role probe
-    LinkActivity.kt          launcher: admin, home slot, overlay grant, arm
-    LockActivity.kt          the block screen
-    OverlayGuard.kt          window 2038 surface, the layer above the shade
-    KeepAliveService.kt      foreground anchor
-    BootReceiver.kt          boot / package-replace / 15 min tick re-arm
-    GuardReceiver.kt         device-admin surface
-    ScreenReceiver.kt        panel wake re-assert
-  res/                       icons (CF monogram), strings, admin policy
-  tools/make_icons.py        regenerates every density + adaptive pair
-  dist/CF-LOCK.apk           signed output
-```
+A variante release pode ser compilada com `:app:assembleRelease`. Ela está sem minificação e não tem keystore incluído; configure/execute a assinatura pelo SmartIDE ou Android SDK antes de distribuir. Não coloque keystore nem senhas no controle de versão.
 
-## Build
+## Componentes
 
-Needs a JDK 11+, the Kotlin compiler distribution (compiler jar, stdlib and
-its compiler dependencies), `android.jar`, `d8.jar`, `apksigner.jar`, `aapt2`,
-a signing keystore, `zip`, and `unzip`. Paths are environment overrides.
-The build checks these inputs before removing the previous build directory.
+- `Gate.kt`: verificação do código via SHA-256 e comparação sem saída antecipada.
+- `Prefs.kt`: estado do bloqueio, tentativas, boots e cooldown em SharedPreferences.
+- `Shield.kt`: flags imersivas, lock task, wake e verificação do launcher padrão.
+- `LinkActivity.kt`: fluxo de configuração e ativação.
+- `LockActivity.kt`: tela de bloqueio.
+- `OverlayGuard.kt`: superfície de sobreposição.
+- `KeepAliveService.kt`: serviço de primeiro plano.
+- `BootReceiver.kt` / `ScreenReceiver`: reativação após boot e eventos de tela.
+- `GuardReceiver.kt`: receiver de administrador do dispositivo.
 
-The script resolves the `kotlinc` executable's symlinks to find its distribution.
-`KOTLIN_HOME` can point at a distribution containing `lib/`; explicit
-`KOTLINC_JAR` and `KOTLIN_STDLIB` settings override its jar paths. Without a
-discoverable installation, the original `$HOME/buildenv/bin` defaults are kept.
-`COROUTINES` and `ANNOTATIONS` are optional for this app and are only added to
-the compiler classpath when present.
+## Ativar e armar
 
-```sh
-export JAVA=/path/to/jdk/bin/java
-export KOTLIN_HOME=/path/to/kotlinc  # directory containing bin/ and lib/
-# Or set the two jars explicitly instead of KOTLIN_HOME:
-export KOTLINC_JAR=/path/to/kotlin-compiler.jar
-export KOTLIN_STDLIB=/path/to/kotlin-stdlib.jar
-export ANDROID_JAR=/path/to/android.jar
-export D8_JAR=/path/to/d8.jar
-export APKSIGNER_JAR=/path/to/apksigner.jar
-export AAPT2=/path/to/aapt2
-export KEYSTORE=/path/to/release.jks KS_PASS=... KEY_PASS=... KEY_ALIAS=...
+1. Instale o APK e abra CF LOCK.
+2. Siga os botões para conceder, se desejar, as permissões de administrador e sobreposição, e escolha CF LOCK como tela inicial.
+3. Pressione **Armar bloqueio**. A linha de estado mostra se administrador, launcher e sobreposição estão ativos.
+4. Para liberar, informe o código aceito na tela e pressione **Desbloquear**.
 
-# From the repository root:
-bash app/build.sh
-```
+A permissão de administrador/launcher/sobreposição depende de confirmação explícita nas telas do Android. O app não é um device owner nem substitui políticas gerenciadas por uma organização; um dispositivo não-rooted mantém caminhos de recuperação do sistema.
 
-### Termux
+## Recuperação
 
-The Termux Kotlin package installs the distribution under `$PREFIX/opt/kotlin`;
-its compiler is `$PREFIX/opt/kotlin/lib/kotlin-compiler.jar`, not usually
-`$HOME/buildenv/bin/kotlin-compiler.jar`. `kotlin -version` checks the runtime,
-whereas `kotlinc -version` checks the compiler. `-version` is the correct flag.
+O app não apaga nem criptografa dados. Se necessário, use ADB:
 
-With Kotlin already installed and `kotlinc` on PATH, the updated script discovers
-the compiler and stdlib automatically. To fix an existing checkout without
-changing its script, set the paths in the same shell before running the build:
+- `adb shell pm clear com.cf.kiosk` limpa o estado local e a flag de bloqueio.
+- `adb shell appops set com.cf.kiosk SYSTEM_ALERT_WINDOW deny` remove a permissão de sobreposição.
+- `adb shell am force-stop com.cf.kiosk` interrompe o app; se lock task estiver ativo, reinicie em modo seguro ou remova o app administrador em Configurações > Segurança.
+- Como último recurso, desative CF LOCK em Configurações > Apps ou remova o administrador em Configurações > Segurança > Apps de administrador do dispositivo.
 
-```sh
-export KOTLINC_JAR="$PREFIX/opt/kotlin/lib/kotlin-compiler.jar"
-export KOTLIN_STDLIB="$PREFIX/opt/kotlin/lib/kotlin-stdlib.jar"
-cd ~/CF-UNLIMITED-COINS/app
-bash build.sh
-```
+O código aceito não é guardado em texto claro. A implementação e seu hash estão em `Gate.kt`; se for personalizar o código, regenere também os valores armazenados de acordo com a lógica da classe.
 
-If `kotlinc` is not installed, install the Termux `kotlin` package first. The
-Android jar, D8, apksigner, aapt2 and keystore still need to be supplied at the
-paths configured above; installing Kotlin alone does not provide those inputs.
-A missing `org.jetbrains.kotlin.cli.jvm.K2JVMCompiler` means that the JVM cannot
-find the compiler class on its classpath; it does not by itself indicate a Java
-version incompatibility. The script also checks that the selected compiler jar
-actually contains this class.
+## Build headless legado (opcional)
 
-`aapt2 compile` runs with `--dir res`, so the resource tree must exist before
-the build. `app/tools/make_icons.py` writes it from scratch if you wiped it.
-
-## Install and arm
-
-```sh
-adb install -r app/dist/CF-LOCK.apk
-adb shell appops set com.cf.kiosk SYSTEM_ALERT_WINDOW allow   # optional shortcut
-adb shell dpm set-active-admin com.cf.kiosk/.GuardReceiver    # optional shortcut
-```
-
-Open CF LOCK, walk the four buttons (admin, home slot, overlay grant, arm).
-The status line under the buttons reads `admin ok | home ok | overlay ok`
-when each one took.
-
-## How the latch holds
-
-| Layer | Mechanism | Held against |
-|---|---|---|
-| Lock screen | `LockActivity` singleInstance, immersive flags, re-assert every 1.5 s | back, recents, home, notification press |
-| Overlay | `TYPE_APPLICATION_OVERLAY`, full-screen, `FLAG_SECURE`, `FLAG_NOT_TOUCH_MODAL` | the notification shade and heads-up banners |
-| Home slot | `CATEGORY_HOME` on the lock activity, lock task via admin | launcher, task switcher |
-| Boot | `BOOT_COMPLETED` receiver starts the foreground service | reboot |
-| Watchdog | `AlarmManager` inexact repeat, 15 min | service kills, long idle |
-| Uninstall | device-admin active | Settings > Uninstall Apps |
-
-## Releasing the device
-
-Type the code, tap Desbloquear. On success the app clears the lock flag,
-stops the overlay and the service, drops lock task, clears its preferred-home
-binding, and sends you to the home picker. Nothing else is touched.
-
-If the admin bit is still active, remove it in Settings > Security > Device
-admin apps > CF LOCK.
-
-## Recovery without the code
-
-The app never encrypts or deletes anything, so recovery is always the same
-shape: data stays, access is what is held.
-
-- **Preferred-home path.** If the lock activity never got bound as home, an
-  ADB shell can uninstall or force-stop it:
-  `adb shell pm clear com.cf.kiosk` resets the lock flag.
-  `adb shell pm disable-user --user 0 com.cf.kiosk` stops it from launching.
-- **Overlay path.** `adb shell appops set com.cf.kiosk SYSTEM_ALERT_WINDOW deny`
-  removes the shade-covering layer, then `pm clear` finishes the job.
-- **Lock task path.** `adb shell am force-stop com.cf.kiosk` plus
-  `adb shell cmd device_policy` on the admin, or a reboot into safe mode.
-- **Worst case, device owner path.** If neither the launcher nor ADB is
-  reachable, a factory reset clears the app. That is also the honest limit of
-  a user-space kiosk on a non-rooted phone: it can hold the surface, it cannot
-  hold the bootloader.
-
-## Coverage notes
-
-- **API 24-25.** `TYPE_PHONE` overlay, no overlay permission needed.
-- **API 26-29.** `TYPE_APPLICATION_OVERLAY`, `startForegroundService`, adaptive icon.
-- **API 30-33.** Background activity launches restricted; the overlay and the
-  foreground service carry the re-assert instead of `startActivity`.
-- **API 34-36.** `foregroundServiceType="specialUse"` with
-  `FOREGROUND_SERVICE_SPECIAL_USE`; `showWhenLocked` / `turnScreenOn` on the
-  lock activity instead of the deprecated attributes.
-- Gesture navigation is not a `systemUiVisibility` target. The overlay and lock
-  task are what hold it shut; a partial swipe still shows a transient bar.
-
-## Key handling
-
-The accepted code is stored nowhere. `Gate.kt` holds four 64-bit limbs, each
-the matching limb of `SHA-256(salt:input)` XOR a fixed mask, and compares with
-an accumulating OR so timing does not leak limb position. Verified by
-brute-forcing the full 4-digit space: exactly one value passes. Regenerate the
-limbs if you change the code:
-
-```python
-import hashlib
-d = hashlib.sha256(b"cf9f2a71:<new-code>").digest()
-for i in range(4):
-    w = int.from_bytes(d[i*8:(i+1)*8], 'big') ^ MASK[i]
-    print(f"0x{w:016X}UL")
-```
+`app/build.sh` continua disponível, mas não é usado pelo SmartIDE. Ele requer JDK, compilador Kotlin, Android SDK Build Tools e keystore locais; consulte o próprio script para variáveis de ambiente e caminhos necessários.

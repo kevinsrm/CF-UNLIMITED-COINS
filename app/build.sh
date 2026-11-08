@@ -6,8 +6,9 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 APP="$ROOT"
-SRC="$APP/src"
-RES="$APP/res"
+SRC="$APP/src/main/kotlin"
+RES="$APP/src/main/res"
+MANIFEST="$APP/src/main/AndroidManifest.xml"
 OUT="${OUT:-$APP/build}"
 DIST="${DIST:-$APP/dist}"
 APK_NAME="${APK_NAME:-CF-LOCK.apk}"
@@ -120,8 +121,12 @@ echo "[3/6] aapt2 compile"
 "$AAPT2" compile --dir "$RES" -o "$OUT/res.zip"
 
 echo "[4/6] aapt2 link"
+# Gradle gets its namespace from app/build.gradle.kts; the legacy aapt2 path
+# needs a package attribute in a temporary manifest.
+sed 's/<manifest xmlns:android="/<manifest package="com.cf.kiosk" xmlns:android="/' \
+    "$MANIFEST" > "$OUT/AndroidManifest.xml"
 "$AAPT2" link -o "$OUT/base.apk" \
-    --manifest "$APP/AndroidManifest.xml" \
+    --manifest "$OUT/AndroidManifest.xml" \
     -I "$ANDROID_JAR" \
     --min-sdk-version "$MIN_SDK" --target-sdk-version "$TARGET_SDK" \
     --auto-add-overlay \
