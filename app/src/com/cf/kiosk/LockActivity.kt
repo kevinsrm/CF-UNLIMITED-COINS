@@ -35,7 +35,7 @@ class LockActivity : Activity() {
         override fun run() {
             if (prefs.locked) {
                 Shield.hideBars(this@LockActivity)
-                Shield.pin(this@LockActivity)
+                Shield.lockTask(this@LockActivity)
                 ui.postDelayed(this, 1500L)
             }
         }
@@ -123,7 +123,7 @@ class LockActivity : Activity() {
             Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS
         runCatching { startActivity(again) }
         Shield.hideBars(this)
-        Shield.pin(this)
+        Shield.lockTask(this)
     }
 
     private fun shell(titleText: String, bodyText: String, accent: Int): LinearLayout {

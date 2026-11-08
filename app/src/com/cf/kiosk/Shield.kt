@@ -51,22 +51,17 @@ object Shield {
         activity.window.decorView.systemUiVisibility = FLAG_KIOSK
     }
 
-    /** start task pinning without a chooser; older builds require a permission the app cannot hold */
-    fun pin(activity: Activity) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP_MR1) return
-        runCatching { activity.startLockTask() }
-    }
-
-    /** lock-task set from the admin surface, so the system stops honouring home and recents */
+    /**
+     * lock-task set from the admin surface, so the system stops honouring home and
+     * recents; without the admin bit the call is a bare pin attempt the build ignores
+     */
     fun lockTask(activity: Activity) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) return
         if (isAdmin(activity)) {
             val dpm = activity.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
             runCatching { dpm.setLockTaskPackages(admin(activity), arrayOf(activity.packageName)) }
-            runCatching { activity.startLockTask() }
-        } else {
-            pin(activity)
         }
+        runCatching { activity.startLockTask() }
     }
 
     fun stopLockTask(activity: Activity) {
