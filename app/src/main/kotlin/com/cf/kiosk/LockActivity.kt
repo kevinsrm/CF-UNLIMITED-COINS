@@ -19,6 +19,7 @@ import android.view.Gravity
 import android.view.ViewGroup
 import android.view.WindowManager
 import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.InputMethodManager
 import android.widget.Button
 import android.widget.EditText
 import android.widget.LinearLayout
@@ -63,6 +64,7 @@ class LockActivity : Activity() {
             return
         }
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN)
         Shield.applyKiosk(this)
         buildUi()
         OverlayGuard.start(this)
@@ -172,6 +174,10 @@ class LockActivity : Activity() {
         field.textSize = 22f
         field.imeOptions = EditorInfo.IME_ACTION_DONE
         field.setSingleLine(true)
+        field.setOnClickListener {
+            val keyboard = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+            keyboard.showSoftInput(field, InputMethodManager.SHOW_IMPLICIT)
+        }
         field.setOnEditorActionListener { _, action, _ ->
             if (action == EditorInfo.IME_ACTION_DONE) { tryCode(); true } else false
         }
